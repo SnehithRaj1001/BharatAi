@@ -20,7 +20,7 @@ const RegisterPage = () => {
     try {
       const response = await registerUser({ email, password });
       login(response);
-      navigate("/dashboard");
+      navigate("/profile");
     } catch (err) {
       setError(err.message);
     } finally {

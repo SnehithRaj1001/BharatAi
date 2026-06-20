@@ -46,6 +46,7 @@ const translations = {
     logout: "Logout",
     dashboard: "Dashboard",
     dashboardDescription: "Your saved schemes and recent activity.",
+    savedSchemes: "Saved Schemes",
     emptySavedSchemes: "You don't have any saved schemes yet.",
     email: "Email",
     password: "Password",
@@ -108,6 +109,7 @@ const translations = {
     register: "रजिस्टर",
     logout: "लॉगआउट",
     dashboard: "डैशबोर्ड",
+    savedSchemes: "सहेजी गई योजनाएँ",
   },
 };
 

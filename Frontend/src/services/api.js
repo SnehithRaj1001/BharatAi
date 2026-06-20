@@ -23,6 +23,9 @@ const request = async (path, options = {}) => {
 
 export { request };
 
+export const getMyProfile = (authUserId) =>
+  request(`/users/me?authUserId=${authUserId}`);
+
 export const createUserProfile = (profileData) =>
   request("/users", {
     method: "POST",
@@ -33,6 +36,11 @@ export const getRecommendationsByUser = (userId) =>
   request(`/recommendations/user/${userId}`);
 export const createRecommendations = (userId) =>
   request("/recommendations", {
+    method: "POST",
+    body: JSON.stringify({ userId }),
+  });
+export const getSmartRecommendations = (userId) =>
+  request("/recommendations/smart", {
     method: "POST",
     body: JSON.stringify({ userId }),
   });

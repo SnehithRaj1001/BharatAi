@@ -46,7 +46,7 @@ const SchemesPage = () => {
                   <h2 className="text-xl font-semibold text-slate-900">
                     {scheme.schemeName}
                   </h2>
-                  <p className="mt-2 text-slate-600">{scheme.description}</p>
+                  <p className="mt-2 text-slate-600 line-clamp-2">{scheme.description}</p>
                 </div>
                 <Link
                   to={`/schemes/${scheme._id}`}

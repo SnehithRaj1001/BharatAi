@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { getSavedSchemes } from "../services/dashboardApi.js";
-
 const SavedSchemesPage = () => {
   const { t } = useLanguage();
   const [schemes, setSchemes] = useState([]);
@@ -34,16 +34,28 @@ const SavedSchemesPage = () => {
         {!loading && schemes.length === 0 && (
           <p className="text-slate-600">{t("emptySavedSchemes")}</p>
         )}
-        <div className="space-y-5">
+        <div className="space-y-5 mt-6">
           {schemes.map((scheme) => (
             <article
               key={scheme._id}
-              className="rounded-3xl border border-slate-200 bg-slate-50 p-6"
+              className="rounded-3xl border border-slate-200 bg-slate-50 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:border-indigo-200 hover:shadow-sm"
             >
-              <h2 className="text-xl font-semibold text-slate-900">
-                {scheme.schemeName}
-              </h2>
-              <p className="mt-2 text-slate-600">{scheme.description}</p>
+              <div className="flex-1">
+                <Link to={`/schemes/${scheme._id}`} className="hover:underline">
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {scheme.schemeName}
+                  </h2>
+                </Link>
+                <p className="mt-2 text-slate-600 line-clamp-2">{scheme.description}</p>
+              </div>
+              <div className="flex-shrink-0">
+                <Link
+                  to={`/schemes/${scheme._id}`}
+                  className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                >
+                  View Details
+                </Link>
+              </div>
             </article>
           ))}
         </div>

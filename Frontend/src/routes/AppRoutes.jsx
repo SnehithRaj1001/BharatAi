@@ -1,7 +1,6 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import LandingPage from "../pages/LandingPage.jsx";
 import ProfilePage from "../pages/ProfilePage.jsx";
-import RecommendationsPage from "../pages/RecommendationsPage.jsx";
 import SchemesPage from "../pages/SchemesPage.jsx";
 import SchemeDetailsPage from "../pages/SchemeDetailsPage.jsx";
 import ChatPage from "../pages/ChatPage.jsx";
@@ -23,12 +22,18 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/recommendations" element={<RecommendationsPage />} />
       <Route path="/schemes" element={<SchemesPage />} />
       <Route path="/schemes/:schemeId" element={<SchemeDetailsPage />} />
-      <Route path="/chat" element={<ChatPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <ChatPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
