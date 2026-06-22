@@ -96,19 +96,43 @@ This prototype is a working version of BharatAI built for a hackathon demo. It i
   - Chat (`/api/chat`)
   - Saved Schemes (`/api/saved-schemes`)
 - Seeded demo schemes are inserted automatically on first run
-- Advanced Python-based recommendation engine (`recommend.py`) using TF-IDF cosine similarity and an LLM verification layer via OpenRouter.
+- Advanced Python-based recommendation engine (`python_scripts/recommendation_service.py`) — a FastAPI microservice spawned automatically by the Node.js server on startup (port `5003`). Uses TF-IDF cosine similarity with an LLM verification layer via OpenRouter.
 
 ## AI Implementation
 
-The AI capabilities in BharatAI are powered by a dual-layered approach to ensure both precision and natural language understanding:
+The AI capabilities in BharatAI are powered by a multi-stage pipeline running inside a **Python FastAPI microservice** (`Backend/python_scripts/recommendation_service.py`). This service is automatically spawned by the Node.js server at startup on port `5003` and exposes three endpoints:
 
-1. **Recommendation Engine (TF-IDF)**:
-   - A Python-based service uses TF-IDF vectorization and cosine similarity to match user profiles against scheme eligibility criteria.
-   - Extracts key features like age, gender, category, state, and occupation to compute a relevance score for each scheme.
+- **`POST /recommend`** — Full pipeline: fetch schemes → pre-filter → TF-IDF scoring → LLM evaluation
+- **`POST /simplify`** — On-demand plain-language summary of a scheme (triggered by a UI button click)
+- **`POST /evaluate-eligibility`** — On-demand per-scheme eligibility check for a specific user (triggered by a UI button click)
 
-2. **LLM Verification & Chat (OpenRouter / `google/gemma-4-31b-it:free`)**:
-   - The top recommendations are verified using an LLM to explain *why* the user is eligible, generating a "reasoning" layer.
-   - A Multi-turn AI Assistant is implemented to allow users to ask follow-up questions, query specific details about schemes, and get help with the application process. It uses context from the user's profile and recommended schemes to provide personalized answers.
+### Pipeline Stages
+
+1. **Profile Vectorization (`build_user_query`)**:
+   - Converts the citizen's structured profile (age, gender, state, caste category, income, BPL status, occupation, disability, farmer/student/entrepreneur flags, etc.) into a rich, natural-language query string optimized for TF-IDF matching.
+
+2. **Pre-filtering (`pre_filter_schemes`)**:
+   - Hard-filters the scheme database before vectorization to remove obviously irrelevant schemes (e.g., women-only schemes for male users, farmer schemes for non-farmers, SC/ST schemes for general-category applicants). Reduces noise and improves precision.
+
+3. **TF-IDF Cosine Similarity Scoring**:
+   - Uses `TfidfVectorizer` (bigrams, `sublinear_tf=True`) to vectorize the scheme corpus (name + category + description + eligibility + benefits + required documents) and the user query together.
+   - Computes cosine similarity scores between the user vector and every scheme vector.
+
+4. **Score Boosting**:
+   - Applies context-aware multipliers to raw scores: +30% for gender-specific schemes matching female/transgender users, +25% for caste category match, +20% for BPL/EWS income brackets, +20% for disability/farmer schemes when applicable, and +15% for ITI/diploma-specific schemes.
+
+5. **Score Normalization & Top-N Selection**:
+   - Normalizes all scores to a human-readable 0.45–0.92 range. Selects the **top 5** schemes by raw score for LLM verification.
+
+6. **LLM Verification & Reasoning (`llm_evaluate`)**:
+   - Sends the top 5 matched schemes alongside the user profile to an LLM via OpenRouter in a **single batched prompt** (to minimize API calls).
+   - Returns structured JSON per scheme: `isEligible`, `reasoning` (plain English or Hindi in Devanagari script), and `missingRequirements`.
+   - Model used: **`google/gemma-4-31b-it:free`** (primary), with automatic fallback to `openrouter/free` and `openrouter/auto`.
+   - API key is loaded securely from the `OPENROUTER_API_KEY` environment variable via `python-dotenv` — **no hardcoded keys**.
+
+7. **Multi-turn AI Chat Assistant**:
+   - A separate chat pipeline (via `Backend/src/routes/chatRoutes.js`) provides a multi-turn WhatsApp-style assistant.
+   - Maintains conversation history per user and uses the same OpenRouter LLM to answer questions about schemes, application processes, and required documents in real time, in English or Hindi.
 
 ## Folder structure
 
@@ -116,7 +140,7 @@ The AI capabilities in BharatAI are powered by a dual-layered approach to ensure
 
 - `Backend/`
 - `Frontend/`
-- `atlas-credentials.env` (Atlas connection helper)
+- `README.md`
 
 ### Backend
 
@@ -125,7 +149,9 @@ The AI capabilities in BharatAI are powered by a dual-layered approach to ensure
 - `src/models/` - Mongoose schema definitions
 - `src/routes/` - Express routers
 - `src/services/` - helpers like scheme seeding
-- `src/index.js` - server entrypoint
+- `src/utils/` - shared helpers (OpenRouter client, etc.)
+- `src/index.js` - server entrypoint (also spawns the Python microservice on startup)
+- `python_scripts/recommendation_service.py` - FastAPI AI microservice (TF-IDF + LLM pipeline)
 
 ### Frontend
 
@@ -143,17 +169,22 @@ The AI capabilities in BharatAI are powered by a dual-layered approach to ensure
 1. Open terminal in `Backend/`
 2. Create `.env` with:
    ```env
-   MONGO_URI="<your atlas connection string>"
+   MONGODB_URI="<your atlas connection string>"
+   OPENROUTER_API_KEY="<your openrouter api key>"
    ```
-3. Install dependencies if needed:
+3. Install Node.js dependencies:
    ```bash
    npm install
    ```
-4. Start backend:
+4. Install Python dependencies for the AI microservice:
+   ```bash
+   pip install fastapi uvicorn scikit-learn pandas pymongo openai python-dotenv
+   ```
+5. Start backend:
    ```bash
    npm run dev
    ```
-5. Backend will run on `http://localhost:5002`
+6. The Node.js server starts on `http://localhost:5002` and automatically spawns the Python FastAPI microservice on `http://localhost:5003`.
 
 ### Files and folders that should not be committed
 
@@ -251,7 +282,8 @@ Follow these simple steps to witness the core features of BharatAI:
 
 - **Frontend:** React (Vite), Tailwind CSS, React Router
 - **Backend:** Node.js, Express, MongoDB Atlas, Mongoose
-- **Recommendation Engine:** TF-IDF Cosine Similarity + LLM (Gemma-4-31b-it via OpenRouter)
+- **Recommendation Engine:** Python FastAPI microservice — TF-IDF Cosine Similarity (scikit-learn) + LLM Verification (Gemma-4-31b-it via OpenRouter)
+- **AI Chat:** Multi-turn conversational assistant with conversation history (OpenRouter / Gemma-4-31b-it)
 
 ---
 
